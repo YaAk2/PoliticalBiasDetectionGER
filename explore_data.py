@@ -2,7 +2,6 @@ import numpy as np
 import glob
 from xml.etree import cElementTree as ET
 import collections
-import newspaper
 from newspaper import Article, Config
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -18,6 +17,14 @@ from more_itertools import unique_everseen
 from nltk.tokenize import RegexpTokenizer
 tokenizer = RegexpTokenizer(r'\w+')
 
+def tokenize(texts):
+    if isinstance(texts, str):
+        texts = [texts]
+        tokenized_texts = [tokenizer.tokenize(t.lower()) for t in texts]
+        return tokenized_texts
+    elif isinstance(texts, list):
+        tokenized_texts = [tokenizer.tokenize(t.lower()) for t in texts]
+        return tokenized_texts
 
 class GermaParl:
     def __init__(self, data_path):
@@ -59,9 +66,9 @@ class GermaParl:
         self.texts, self.labels = zip(*data_unique)
          
         self.texts = list(self.texts)
-        tokenized_texts = [tokenizer.tokenize(t.lower()) for t in self.texts]
+        #tokenized_texts = [tokenizer.tokenize(t.lower()) for t in self.texts]
+        self.texts = tokenize(self.texts)
         
-        self.texts = tokenized_texts
         self.labels = list(self.labels)
         self.number_of_samples = len(self.texts)
         
@@ -86,8 +93,7 @@ class LoadArchive:
             [t[105:] for t in tokenized_jf[70687:]]
             self.texts = tokenized_jf
         else:
-            tokenized_texts = [tokenizer.tokenize(t.lower()) for t in self.texts]
-            self.texts = tokenized_texts
+            self.texts = tokenize(self.texts)
         
         self.number_of_samples = len(self.texts)
     
@@ -200,14 +206,11 @@ class ScrapeArchive:
                     pages = self.driver.find_elements_by_xpath(xpath)
                     
                     try:
-                        #pages = list(dict.fromkeys([int((p.get_attribute('href')).split("/")[-1]) for p in pages]))
                         num_pages = max([int((p.get_attribute('href')).split("/")[-1]) for p in pages])
                     except ValueError:
-                        #pages = [1]
                         num_pages = 1
                     
-                    for p in range(1, num_pages + 1, 3):
-                    #for p in range(1, num_pages + 1):
+                    for p in range(1, num_pages + 1):
                         url = 'https://www.sueddeutsche.de/archiv/'+ t + '/' + y + '/' + f'{m:02d}' + '/page/' + str(p)
                         while True:
                             try:
@@ -488,7 +491,7 @@ def num_samples_per_class(labels):
     df.groupby('label', as_index=True).size().plot(kind='bar')
     plt.title('Number of samples per class')
     plt.show()
-
+    
     
 def data_preprocessing(tokenized_texts):
     return tokenized_texts
