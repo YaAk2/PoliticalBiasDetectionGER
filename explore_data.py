@@ -2,12 +2,12 @@ import numpy as np
 import glob
 from xml.etree import cElementTree as ET
 import collections
-from newspaper import Article, Config
+#from newspaper import Article, Config
 import pandas as pd
 import matplotlib.pyplot as plt
 import pickle
-import selenium
-from selenium import webdriver
+#import selenium
+#from selenium import webdriver
 
 from itertools import chain
 from collections import Counter
@@ -25,6 +25,16 @@ def tokenize(texts):
     elif isinstance(texts, list):
         tokenized_texts = [tokenizer.tokenize(t.lower()) for t in texts]
         return tokenized_texts
+    
+def remove_duplicates(texts, labels=None):
+    if labels:
+        data = zip(texts, labels)
+        data_unique = unique_everseen(data, key=itemgetter(0))
+        texts, labels = zip(*data_unique)
+        return list(texts), list(labels)
+    else:
+        texts = list(dict.fromkeys(texts))
+        return list(texts)
 
 class GermaParl:
     def __init__(self, data_path):
@@ -60,30 +70,25 @@ class GermaParl:
         self.labels = ['left' if p in mapping['left']
                        else 'center' if p in mapping['center']
                        else 'right' for p in parties]
-
-        data = zip(self.texts, self.labels)
-        data_unique = unique_everseen(data, key=itemgetter(0))
-        self.texts, self.labels = zip(*data_unique)
          
-        self.texts = list(self.texts)
-        #tokenized_texts = [tokenizer.tokenize(t.lower()) for t in self.texts]
+        self.texts, self.labels = remove_duplicates(self.texts, self.labels)    
+        
         self.texts = tokenize(self.texts)
         
-        self.labels = list(self.labels)
         self.number_of_samples = len(self.texts)
         
 
-class LoadArchive:
+class Archive:
     def __init__(self, data_path):
         super().__init__()
-        mapping = {'left': {'jungleworld_archive.pkl'}, 
-                   'center': {'sueddeutsche_archive.pkl'}, 
-                   'right': {'jungefreiheit_archive.pkl'}}
+        self.mapping = {'left': {'jungleworld_archive.pkl'}, 
+                        'center': {'sueddeutsche_archive.pkl'}, 
+                        'right': {'jungefreiheit_archive.pkl'}}
 
         with open(data_path, 'rb') as f:
             self.texts = pickle.load(f)
         
-        self.texts = list(dict.fromkeys(self.texts))
+        self.texts = remove_duplicates(self.texts)
         
         if data_path =='jungefreiheit_archive.pkl':
             tokenized_jf = [tokenizer.tokenize(t.lower()) for t in self.texts]
@@ -97,13 +102,13 @@ class LoadArchive:
         
         self.number_of_samples = len(self.texts)
     
-        if data_path in mapping['left']:
-            self.labels = ['left']*len(self.texts)
-        elif data_path in mapping['right']:
-            self.labels = ['right']*len(self.texts)
-        else:
-            self.labels = ['center']*len(self.texts)
-        
+        self.labels = []
+        if data_path.split('/')[1] in self.mapping['left']:
+            self.labels.extend(['left']*len(self.texts))
+        elif data_path.split('/')[1] in self.mapping['right']:
+            self.labels.extend(['right']*len(self.texts))
+        elif data_path.split('/')[1] in self.mapping['center']:
+            self.labels.extend(['center']*len(self.texts))
         
 class ScrapeArchive:
     def __init__(self):
@@ -486,7 +491,7 @@ class ScrapeLatestNews:
         self.number_of_samples = len(self.texts)
 
         
-def num_samples_per_class(labels):
+def plot_num_samples_per_class(labels):
     df = pd.DataFrame({'label': labels})
     df.groupby('label', as_index=True).size().plot(kind='bar')
     plt.title('Number of samples per class')

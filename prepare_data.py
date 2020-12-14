@@ -4,6 +4,7 @@ from tensorflow.keras.preprocessing import text
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
+from collections import Counter
 
 MAX_FEATURES = 20000
 MAX_SEQUENCE_LENGTH = 500
@@ -47,8 +48,13 @@ class SequenceVectorize:
         #Padding 
         vect_texts = sequence.pad_sequences(vect_texts, maxlen=MAX_SEQUENCE_LENGTH)
         return vect_texts
-    
+
 def onehot_encoding(labels):
+    ''' 
+    0: center
+    1: left
+    2: right
+    '''
     label_encoder = LabelEncoder()
     integer_encoded = label_encoder.fit_transform(np.array(labels))
     onehot_encoder = OneHotEncoder(sparse=False, categories='auto')
@@ -69,11 +75,18 @@ def train_val_test_split(vect_texts, labels, reproduceable=True):
     else:
         random_state = None
     
-    onehot_encoded = onehot_encoding(labels)
-    
+    onehot_encoded, _ = onehot_encoding(labels)
     train_texts, test_texts, train_labels, test_labels = train_test_split(vect_texts, onehot_encoded, 
                                                                           test_size=0.20, random_state=random_state)
     test_texts, val_texts, test_labels, val_labels = train_test_split(test_texts, test_labels, 
                                                                       test_size=0.50, random_state=random_state)
     
     return train_texts, train_labels, val_texts, val_labels, test_texts, test_labels
+
+def compute_class_weight(labels):
+    samples_per_class = Counter(labels)
+    majority_class = max(samples_per_class.values()) 
+    class_weight = {0: majority_class/samples_per_class['center'],
+                    1: majority_class/samples_per_class['left'],
+                    2: majority_class/samples_per_class['right']}
+    return class_weight
