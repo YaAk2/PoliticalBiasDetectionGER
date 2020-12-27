@@ -12,5 +12,4 @@ Tested on Python 3.6.8
 * [more-itertools](https://pypi.org/project/more-itertools/) (8.6.0)
 * [NLTK](https://www.nltk.org/) (3.5)
 * [TensorFlow](https://www.tensorflow.org/) (2.2.0)
-* [Keras](https://keras.io/) (2.2.4)
 * [Scikit-learn](https://scikit-learn.org/stable/) (0.20.2)
