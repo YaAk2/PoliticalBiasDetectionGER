@@ -5,20 +5,21 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 from collections import Counter
+import itertools
+import json
 
-MAX_FEATURES = 20000
-MAX_SEQUENCE_LENGTH = 500
+MAX_FEATURES = 30000
+MAX_SEQUENCE_LENGTH = 300
 
 class SequenceVectorize:
-    def __init__(self, tokenized_texts, vocab=False):
+    def __init__(self, train_texts, calculate_vocab):
         '''
-        vocab: Boolean, if True we calculate the vocabulary from the dataset.
+        calculate_vocab: Boolean, if True we calculate the vocabulary from the dataset.
         '''
-        self.tokenized_texts = tokenized_texts
             
         #Get vocabulary.
-        if vocab==False:
-            with open("GloVe/vocab.txt") as f:
+        if calculate_vocab==False:
+            with open("PretrainedEmbedding/vocab.txt") as f:
                 self.word_index = {}
                 i = 1
                 for line in f:
@@ -27,14 +28,14 @@ class SequenceVectorize:
                     i+=1
                     if i == MAX_FEATURES + 1:
                         break
-        else:
-            tokenizer = text.Tokenizer(num_words=MAX_FEATURES)
-            tokenizer.fit_on_texts(tokenized_texts)
-            self.word_index = tokenizer.word_index
+        elif calculate_vocab==True:
+            tokenizer = text.Tokenizer()
+            tokenizer.fit_on_texts(train_texts)
+            self.word_index = dict(itertools.islice(tokenizer.word_index.items(), MAX_FEATURES))
 
-    def vectorize(self):
+    def vectorize(self, texts):
         vect_texts = []
-        for t in self.tokenized_texts:
+        for t in texts:
             vect_text = []
             for w in t:
                 try:
@@ -66,7 +67,7 @@ def onehot_decoding(onehot_encoded, label_encoder):
     onehot_decoded = label_encoder.inverse_transform([np.argmax(onehot_encoded)])
     return onehot_decoded
 
-def train_val_test_split(vect_texts, labels, reproduceable=True):
+def train_val_test_split(vect_texts, labels, reproduceable):
     '''
     reproduceable: Boolean, if True we always get exactly the same shuffling
     '''
@@ -75,8 +76,8 @@ def train_val_test_split(vect_texts, labels, reproduceable=True):
     else:
         random_state = None
     
-    onehot_encoded, _ = onehot_encoding(labels)
-    train_texts, test_texts, train_labels, test_labels = train_test_split(vect_texts, onehot_encoded, 
+    #onehot_encoded, _ = onehot_encoding(labels)
+    train_texts, test_texts, train_labels, test_labels = train_test_split(vect_texts, labels, 
                                                                           test_size=0.20, random_state=random_state)
     test_texts, val_texts, test_labels, val_labels = train_test_split(test_texts, test_labels, 
                                                                       test_size=0.50, random_state=random_state)
@@ -84,9 +85,15 @@ def train_val_test_split(vect_texts, labels, reproduceable=True):
     return train_texts, train_labels, val_texts, val_labels, test_texts, test_labels
 
 def compute_class_weight(labels):
+    ''' 
+    0: center
+    1: left
+    2: right
+    '''
     samples_per_class = Counter(labels)
     majority_class = max(samples_per_class.values()) 
     class_weight = {0: majority_class/samples_per_class['center'],
                     1: majority_class/samples_per_class['left'],
                     2: majority_class/samples_per_class['right']}
     return class_weight
+    
