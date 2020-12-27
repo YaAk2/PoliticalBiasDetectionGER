@@ -2,12 +2,12 @@ import numpy as np
 import glob
 from xml.etree import cElementTree as ET
 import collections
-#from newspaper import Article, Config
+from newspaper import Article, Config
 import pandas as pd
 import matplotlib.pyplot as plt
 import pickle
-#import selenium
-#from selenium import webdriver
+import selenium
+from selenium import webdriver
 import json
 
 from itertools import chain
