@@ -47,7 +47,7 @@ class SequenceVectorize:
         vect_texts = np.array(vect_texts, dtype=object)
 
         #Padding 
-        vect_texts = sequence.pad_sequences(vect_texts, maxlen=MAX_SEQUENCE_LENGTH)
+        vect_texts = sequence.pad_sequences(vect_texts, padding='post', maxlen=MAX_SEQUENCE_LENGTH)
         return vect_texts
 
 def onehot_encoding(labels):
